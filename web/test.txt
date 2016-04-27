@@ -1,0 +1,7 @@
+http://api.themoviedb.org/3/authentication/token/new?api_key=9b78d8e379d245160e50b992280150f2
+
+https://www.themoviedb.org/authenticate/### request_token ###/allow
+
+http://api.themoviedb.org/3/authentication/session/new?api_key=9b78d8e379d245160e50b992280150f2&request_token=0992af06ab34221e4c88351d280bd0433510ac10
+
+http://api.themoviedb.org/3/account?api_key=9b78d8e379d245160e50b992280150f2&session_id=531eed504d01e01e5b8c030b1ba21d4add6f9e3c

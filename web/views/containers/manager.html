@@ -1,0 +1,143 @@
+<style type="text/css">
+    .list-directories-item.active {
+        color: #000;
+    }
+    .list-directories-item > span {
+        padding-right: 12px;
+    }
+    #spider-log {
+        height: 200px;
+        overflow-y: auto;
+    }
+    div[ng-controller="validationController"] > div.cell {
+        height: 300px!important;
+    }
+    #validation-data {
+        height: 100%;
+        position: absolute;
+        right: 0;
+        top: 0;
+    }
+    .place-bottom {
+        bottom: 0px;
+        position: absolute;
+    }
+    .listview-outlook .list.marked-warning .list-content {
+        border-left: 3px #FFCC00 solid;
+    }
+    .listview-outlook .list.marked-danger .list-content {
+        border-left: 3px #FF3C00 solid;
+    }
+    div.panel > div.heading > button.place-right {
+        margin-right: 8px;
+        margin-top: 2px;
+        height: 1.1rem;
+    }
+</style>
+<div id="sub-container">
+    <div class="grid">
+        <div class="row cells2">
+            <div class="cell">
+                <div class="listview" data-role="listview" ng-controller="directoriesController">
+                    <div id="list-group-directories-movies" class="list-group">
+                        <span class="list-group-toggle">Peliculas</span>
+                        <div class="list-group-content">
+                            <div class="list list-directories-item" ng-repeat="(directory, timestamp) in getDirectories('movies')">
+                                <span class="mif-folder-open mif-2x"></span>{{directory}}
+                            </div>
+                        </div>
+                    </div>
+                    <div id="list-group-directories-tvshows" class="list-group">
+                        <span class="list-group-toggle">Series</span>
+                        <div class="list-group-content">
+                            <div class="list list-directories-item" ng-repeat="(directory, timestamp) in getDirectories('tvshows')">
+                                <span class="mif-folder-open mif-2x"></span>{{directory}}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="cell">
+                <div class="grid">
+                    <div class="row" ng-controller="validationController">
+                        <div class="cell" data-role="preloader" data-type="cycle" ng-hide="sugestion || end"></div>
+                        <div class="cell" ng-hide="!end">
+                            <h2>Hecho</h2><hr>
+                            <h4>Se han reconocido todos los archivos.</h4>
+                            <br><br>
+                            <center><span class="mif-thumbs-up mif-4x"></span></center>
+                        </div>
+                        <div class="cell" ng-hide="!sugestion || sugestion[index]">
+                            <h3>{{pending.local.title}}</h3><hr>
+                            <div class="input-control text full-size" data-role="input">
+                                <input type="text" placeholder="busca por otro nombre..." ng-model="otherName">
+                                <button class="button" ng-click="reSearch()"><span class="mif-search"></span></button>
+                            </div>
+                        </div>
+                        <div class="cell" ng-hide="!sugestion[index]">
+                            <div class="grid">
+                                <div class="row cells2">
+                                    <div class="cell">
+                                        <img ng-src="https://image.tmdb.org/t/p/w185/{{sugestion[index].poster_path}}">
+                                    </div>
+                                    <div id="validation-data" class="cell">
+                                        <center>API</center>
+                                        <ul>
+                                            <li>Titulo: {{sugestion[index].title}}</span></li>
+                                            <li>Año: {{sugestion[index].release_date}}</span></li>
+                                        </ul>
+                                        <hr/>
+                                        <center>Local</center>
+                                        <ul>
+                                            <li>Titulo: {{pending.local.title}}</li>
+                                            <li>Año: {{pending.local.year}}</li>
+                                        </ul>
+                                        <div class="row place-bottom">
+                                            <button class="button" ng-disabled="index <= 0" ng-click="prevSugestion()"><span class="mif-arrow-left"></span></button>
+                                            <button class="button" ng-disabled="index >= sugestion.length - 1" ng-click="nextSugestion()"><span class="mif-arrow-right"></span></button>
+                                            <button class="button" ng-click="showSearch()"><span class="mif-search"></span></button>
+                                            <button class="button success place-right" ng-click="validate()">Validar</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="cell">
+                            <div class="panel" ng-controller="spiderController" ng-init="init()">
+                                <div class="heading">
+                                    <span class="icon mif-list"></span>
+                                    <span class="title">Log</span>
+                                    <label class="switch-original place-right">
+                                        <input id="spider-log-only-fails" type="checkbox" ng-model="hideOK">
+                                        <span class="check"></span>
+                                    </label>
+                                    <button class="button small-button place-right" ng-click="init()"><span class="mif-loop2"></span></button>
+                                </div>
+                                <div id="spider-log" class="listview-outlook" data-role="listview">
+                                    <div class="list-group log-group collapsed" ng-repeat="(directory, group) in moviesLog">
+                                        <span class="list-group-toggle">{{directory}}
+                                            <span class="place-right span-counter {{group.error ? 'fg-red' : (group.warns ? 'fg-amber' : (group.oks ? 'fg-green' : ''))}}">{{group.error ? 'Inacesible' : (group.warns ? group.warns + ' avisos' : (group.oks ? group.oks + ' OK' : 'Vacio'))}}</span>
+                                        </span>
+                                        <div class="list-group-content">
+                                            <div class="list {{entry.error ? 'marked-danger' : (entry.warn ? 'marked-warning' : '')}}" ng-hide="hide{{ entry.warn || entry.error ? '' : 'OK' }}" ng-repeat="entry in group.entries">
+                                                <div class="list-content">
+                                                    <span class="list-subtitle">{{entry.error ? 'Inaccesible' : entry.name}}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+
+</script>

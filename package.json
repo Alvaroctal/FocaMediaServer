@@ -1,0 +1,28 @@
+{
+  "name": "FocaMediaServer",
+  "version": "1.0.0",
+  "description": "Your streaming media center",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron main.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+http://github.com/Alvaroctal/FocaMediaServer.git"
+  },
+  "author": "Alvaro Octal",
+  "license": "CC0-1.0",
+  "bugs": {
+    "url": "http://github.com/Alvaroctal/FocaMediaServer/issues"
+  },
+  "homepage": "https://octal.es/foca/",
+  "devDependencies": {
+    "electron-packager": "^6.0.0",
+    "electron-prebuilt": "^0.37.3"
+  },
+  "dependencies": {
+    "moviedb": "^0.2.3",
+    "queryable": "^0.3.6",
+    "sqlite3": "^3.1.3"
+  }
+}

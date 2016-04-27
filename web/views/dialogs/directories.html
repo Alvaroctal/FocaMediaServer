@@ -1,0 +1,63 @@
+<style type="text/css">
+    #dialog .list-directories .remove-button {
+        margin-left: 20px;
+    }
+    #dialog .tabcontrol2 .frames .frame {
+        padding: 0px 0px 0px 0px;
+        min-width: 300px;
+    }
+    #dialog .listview-outlook .list .list-content {
+        padding: 2px 5px;
+    }
+</style>
+<h1>Directorios</h1>
+<hr>
+<div class="grid" ng-controller="directoriesController">
+    <div class="row cells2">
+        <div class="cell">
+            <div class="input-control file" data-role="input">
+                <input type="file" placeholder="selecionar..." webkitdirectory directory file-model="newDirectory">
+                <button class="button"><span class="mif-folder"></span></button>
+            </div>
+        </div>
+        <div class="cell">
+            <button class="button place-right" ng-disabled="!newDirectory" ng-click="addDirectory(newDirectory)">Añadir</button>
+        </div>
+    </div>
+    <div class="row">
+        <div class="tabcontrol2">
+            <ul class="tabs">
+                <li class="active" data-media="movies"><a href="#frame-list-directories-movies">Películas</a></li>
+                <li data-media="tvshows"><a href="#frame-list-directories-tvshows">Series</a></li>
+            </ul>
+            <div class="frames">
+                <div id="frame-list-directories-movies" class="frame">
+                    <div class="listview-outlook list-directories" data-role="listview">
+                        <div class="list" ng-repeat="(directory, timestamp) in getDirectories('movies')">
+                            <div class="list-content">
+                                <span class="list-title">{{directory}}<button class="button mini-button remove-button place-right danger" ng-click="removeDirectory('movies', directory)">quitar</button>
+                                </span>
+                                <span class="list-remark">{{ timestamp | date:'dd/MM/yyyy HH:mm' }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="frame-list-directories-tvshows" class="frame">
+                    <div class="listview-outlook list-directories" data-role="listview">
+                        <div class="list" ng-repeat="(directory, timestamp) in getDirectories('tvshows')">
+                            <div class="list-content">
+                                <span class="list-title">{{directory}}<button class="button mini-button remove-button place-right danger" ng-click="removeDirectory('tvshows', directory)">quitar</button>
+                                </span>
+                                <span class="list-remark">{{ timestamp | date:'dd/MM/yyyy HH:mm' }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>     
+    </div>
+</div>
+
+<script type="text/javascript">
+    $(".tabcontrol2").tabcontrol();
+</script>

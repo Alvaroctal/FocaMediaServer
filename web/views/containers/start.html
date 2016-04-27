@@ -1,0 +1,95 @@
+<div class="tile-group double" style="left: 0px;">
+    <span class="tile-group-title">Multimedia</span>
+    <div class="tile-container">
+        <div href="#" class="tile-wide bg-amber fg-white container-change" data-role="tile" style="opacity: 1; transform: scale(1); -webkit-transition: 0.3s; transition: 0.3s;" ng-click="setView('movies')">
+            <div class="tile-content iconic">
+                <span class="icon mif-video-camera"></span>
+            </div>
+            <span class="tile-label">Películas</span>
+        </div>
+        <div class="tile-wide bg-green fg-white" data-role="tile" style="opacity: 1; transform: scale(1); -webkit-transition: 0.3s; transition: 0.3s;">
+            <div class="tile-content iconic">
+                <span class="icon mif-display"></span>
+            </div>
+            <span class="tile-label">Series</span>
+        </div>
+        <div class="tile-wide bg-indigo fg-white" data-role="tile" style="opacity: 1; transform: scale(1); -webkit-transition: 0.3s; transition: 0.3s;">
+            <div class="tile-content iconic">
+                <span class="icon mif-music"></span>
+            </div>
+            <span class="tile-label">Música</span>
+        </div>
+    </div>
+</div>
+
+<div class="tile-group" style="left: 0px;">
+    <span class="tile-group-title">Opciones</span>
+    <div class="tile-container">
+        <div href="#" class="tile bg-steel fg-white container-change" data-role="tile" style="opacity: 1; transform: scale(1); -webkit-transition: 0.3s; transition: 0.3s;" ng-click="showDialog('directories')">
+            <div class="tile-content iconic">
+                <span class="icon mif-folder"></span>
+            </div>
+            <span class="tile-label">Directorios</span>
+        </div>
+        <div href="#" class="tile bg-steel fg-white container-change" data-role="tile" style="opacity: 1; transform: scale(1); -webkit-transition: 0.3s; transition: 0.3s;" ng-click="setView('manager')">
+            <div class="tile-content iconic">
+                <span class="icon mif-database"></span>
+            </div>
+            <span class="tile-label">Gestionar</span>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    (function($) {
+        $.StartScreen = function(){
+            var plugin = this;
+            var width = (window.innerWidth > 0) ? window.innerWidth : screen.width;
+    
+            plugin.init = function(){
+                setTilesAreaSize();
+            };
+    
+            var setTilesAreaSize = function(){
+                var groups = $(".tile-group");
+                var tileAreaWidth = 80;
+                $.each(groups, function(i, t){
+                    if (width <= 640) {
+                        tileAreaWidth = width;
+                    } else {
+                        tileAreaWidth += $(t).outerWidth() + 80;
+                    }
+                });
+                $(".tile-area").css({
+                    width: tileAreaWidth
+                });
+            };
+
+    
+            plugin.init();
+        }
+    })(jQuery);
+    
+    $(function(){
+        $.StartScreen();
+    
+        var tiles = $(".tile, .tile-small, .tile-sqaure, .tile-wide, .tile-large, .tile-big, .tile-super");
+    
+        $.each(tiles, function(){
+            var tile = $(this);
+            setTimeout(function(){
+                tile.css({
+                    opacity: 1,
+                    "-webkit-transform": "scale(1)",
+                    "transform": "scale(1)",
+                    "-webkit-transition": ".3s",
+                    "transition": ".3s"
+                });
+            }, Math.floor(Math.random()*500));
+        });
+    
+        $(".tile-group").animate({
+            left: 0
+        });
+    });
+</script>

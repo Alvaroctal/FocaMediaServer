@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html ng-app="MediaLibrary">
+    <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <link href="assets/css/metro.min.css" rel="stylesheet">
+        <link href="assets/css/metro-icons.min.css" rel="stylesheet">
+        <!--<script src="assets/js/jquery-2.1.3.min.js"></script>-->
+        <script type="text/javascript">window.$ = window.jQuery = require('./assets/js/jquery-2.1.3.min.js')</script>
+        <script src="assets/js/angular.min.js"></script>
+        <script src="assets/js/angular-file-model.js"></script>
+        <script src="assets/js/metro.min.js"></script>
+        <title>Biblioteca</title>
+        <style>
+            html, body {
+                height: 100%;
+                overflow: hidden;
+            }
+            .tile-area-controls {
+                position: fixed;
+                right: 40px;
+                top: 40px;
+            }
+            .tile-area {
+                padding-right: 40px;
+            }
+            .tile-group {
+                left: 100px;
+            }
+            .tile, .tile-small, .tile-sqaure, .tile-wide, .tile-large, .tile-big, .tile-super {
+                opacity: 0;
+                -webkit-transform: scale(.8);
+                transform: scale(.8);
+            }
+            #charmSettings .button {
+                margin: 5px;
+            }
+            .schemeButtons {
+                /*width: 300px;*/
+            }
+            #title-icon {
+                padding-right: 12px;
+                padding-bottom: 14px;
+            }
+            @media screen and (max-width: 640px) {
+                .tile-area {
+                    overflow-y: scroll;
+                }
+                .tile-area-controls {
+                    display: none;
+                }
+            }
+            @media screen and (max-width: 320px) {
+                .tile-area {
+                    overflow-y: scroll;
+                }
+                .tile-area-controls {
+                    display: none;
+                }
+            }
+            .tile-area-controls > button {
+                color: black !important;
+            }
+            .tile-area-controls > button:hover {
+                color: white !important;
+            }
+            #sub-container {
+                margin-left: 80px;
+            }
+            .notify-container {
+                top: unset;
+                bottom: 8px;
+                right: 8px;
+            }
+            #dialog {
+                left: 0 !important;
+                right: 0 !important;
+                margin-left: auto;
+                margin-right: auto;
+                top: 184px !important;
+                width: 400px !important;
+            }
+        </style>
+    </head>
+    <body ng-controller="appController">
+        <div data-role="charm" id="charmSearch" class="charm right-side" style="opacity: 1; display: none;">
+            <h1 class="text-light">Search</h1>
+            <hr class="thin">
+            <br>
+            <div class="input-control text full-size">
+                <label>
+                    <span class="dropdown-toggle drop-marker-light">Anywhere</span>
+                    <ul class="d-menu" data-role="dropdown">
+                        <li><a onclick="setSearchPlace(this)">Anywhere</a></li>
+                        <li><a onclick="setSearchPlace(this)">Options</a></li>
+                        <li><a onclick="setSearchPlace(this)">Files</a></li>
+                        <li><a onclick="setSearchPlace(this)">Internet</a></li>
+                    </ul>
+                </label>
+                <input type="text">
+                <button class="button"><span class="mif-search"></span></button>
+            </div>
+            <span class="charm-closer"></span>
+        </div>
+        <div data-role="charm" id="charmSettings" data-position="top" class="charm top-side" style="opacity: 1; display: none;">
+            <h1 class="text-light">Settings</h1>
+            <hr class="thin">
+            <br>
+            <div class="schemeButtons">
+                <div class="button square-button tile-area-scheme-dark" data-scheme="dark"></div>
+                <div class="button square-button tile-area-scheme-darkBrown" data-scheme="darkBrown"></div>
+                <div class="button square-button tile-area-scheme-darkCrimson" data-scheme="darkCrimson"></div>
+                <div class="button square-button tile-area-scheme-darkViolet" data-scheme="darkViolet"></div>
+                <div class="button square-button tile-area-scheme-darkMagenta" data-scheme="darkMagenta"></div>
+                <div class="button square-button tile-area-scheme-darkCyan" data-scheme="darkCyan"></div>
+                <div class="button square-button tile-area-scheme-darkCobalt" data-scheme="darkCobalt"></div>
+                <div class="button square-button tile-area-scheme-darkTeal" data-scheme="darkTeal"></div>
+                <div class="button square-button tile-area-scheme-darkEmerald" data-scheme="darkEmerald"></div>
+                <div class="button square-button tile-area-scheme-darkGreen" data-scheme="darkGreen"></div>
+                <div class="button square-button tile-area-scheme-darkOrange" data-scheme="darkOrange"></div>
+                <div class="button square-button tile-area-scheme-darkRed" data-scheme="darkRed"></div>
+                <div class="button square-button tile-area-scheme-darkPink" data-scheme="darkPink"></div>
+                <div class="button square-button tile-area-scheme-darkIndigo" data-scheme="darkIndigo"></div>
+                <div class="button square-button tile-area-scheme-darkBlue" data-scheme="darkBlue"></div>
+                <div class="button square-button tile-area-scheme-lightBlue" data-scheme="lightBlue"></div>
+                <div class="button square-button tile-area-scheme-lightTeal" data-scheme="lightTeal"></div>
+                <div class="button square-button tile-area-scheme-lightOlive" data-scheme="lightOlive"></div>
+                <div class="button square-button tile-area-scheme-lightOrange" data-scheme="lightOrange"></div>
+                <div class="button square-button tile-area-scheme-lightPink" data-scheme="lightPink"></div>
+                <div class="button square-button tile-area-scheme-grayed" data-scheme="grayed"></div>
+            </div>
+            <span class="charm-closer"></span>
+        </div>
+        <div class="tile-area fg-white tile-area-scheme-dark" style="height: 100%; max-height: 100% !important;">
+            <h1 id="tile-title" class="tile-area-title"><span id="title-icon" class="{{view == 'start' ? 'mif-home' : 'mif-arrow-left'}}" ng-click="setView('start')"></span>Biblioteca</h1>
+            <div class="tile-area-controls">
+                <button class="image-button icon-right bg-transparent fg-white bg-hover-dark no-border" ng-click="showDialog('account')"><span class="sub-header no-margin text-light">{{api.account.name || 'Acceder'}}</span> <span class="icon mif-user"></span></button>
+                <button class="square-button bg-transparent fg-white bg-hover-dark no-border" onclick="showCharms('#charmSearch')"><span class="mif-search"></span></button>
+                <button class="square-button bg-transparent fg-white bg-hover-dark no-border" onclick="showCharms('#charmSettings')"><span class="mif-cog"></span></button>
+                <button class="square-button bg-transparent fg-white bg-hover-dark no-border" onclick="window.close()"><span class="mif-switch"></span></button>
+            </div>
+            <div id="main-container" ng-include="getView()">
+                <!-- Here Goes a Container -->
+            </div>
+        </div>
+
+        <!-- Modals -->
+
+        <div id="dialog" data-role="dialog" class="dialog padding20" data-close-button="true" data-overlay="true" data-overlay-color="op-dark" data-overlay-click-close="true">
+            <div ng-include="dialog">
+                <!-- Here Goes a Dialog -->
+            </div>
+        </div>
+
+    </body>
+</html>
+
+<script>
+
+    //--------------------------------------------------------------------------
+    //  Config
+    //--------------------------------------------------------------------------
+
+    var path = require('path');
+
+    var config = require(path.join(process.cwd(), 'controllers', 'config'));
+    config.load();
+    var mediaSpider = config.getSpider();
+
+    //--------------------------------------------------------------------------
+    //  Angular
+    //--------------------------------------------------------------------------
+
+    var mediaLibrary = angular.module('MediaLibrary', ['file-model']);
+
+    mediaLibrary.factory('DirectoriesService', function () {
+
+        var directories = config.getDirectories();
+        if (!directories) directories = { 'movies': {}, 'tvshows': {} };
+
+        return {
+            getDirectories: function (media) {
+                return directories[media];
+            },
+            addDirectory: function (media, path, timestamp) {
+                directories[media][path] = timestamp;
+                config.setDirectories(directories);
+            },
+            removeDirectory: function (media, path) {
+                delete directories[media][path];
+                config.setDirectories(directories);
+            }
+        };
+    });
+
+    var queryable = require('queryable');
+    var database = queryable.open(path.join(process.cwd(), 'data', 'media.db'));
+
+    mediaLibrary.factory('MediaService', function() {
+
+        var crypto = require('crypto');
+        
+        return {
+            save: function() {
+                database.save();
+            },
+            createID: function(media) {
+                return crypto.createHash('sha1').update(media.path).digest('hex')
+            },
+            getAutoPending: function(media) {
+                return database.find({type: media,data:{$exists:false}}).limit(1).rows[0];
+            },
+            getPending: function(media) {
+                return database.find({type: media,data:1}).limit(1).rows[0];
+            },
+            upsertMovie: function(movie) {
+                var id = this.createID(movie);
+                database.update( 
+                    { _id: id },
+                    {   
+                        $set: {
+                            _id: id,
+                            type: 'movie',
+                            local: movie
+                        }
+                    },
+                    { upsert: true }
+                );
+            },
+            upsertData: function(id, data, callback) {
+                database.update( 
+                    { _id: id },
+                    {   
+                        $set: {
+                            data: data
+                        }
+                    },
+                    { upsert: true },
+                    callback
+                );
+                this.save();
+            },
+            getMoviesResolved: function() {
+                return database.find({type: 'movie',data:{$exists:true}}).rows;
+            }
+        }
+    });
+
+    mediaLibrary.factory('APIService', function($q) {
+        var api = [];
+
+        if (config.getApiKey()) {
+            api = require('moviedb')(config.getApiKey());
+            api.session_id = config.getSessionID();
+
+            var def = $q.defer();
+
+            if (api.session_id) {
+                api.accountInfo(function(err, res) {
+                    if (! err) def.resolve(res);
+                    else def.reject(err);
+                });
+            }
+
+            api['account'] = def.promise;
+        }
+
+        return {
+            get: function() {
+                return api;
+            },
+            setAPIKey: function(api_key) {
+                api = require('moviedb')(api_key);
+            },
+            setSessionID: function(session_id) {
+                api['session_id'] = session_id;
+            },
+            setAccount: function(account) {
+                api['account'] = account;
+            },
+            destroySession: function() {
+                delete api.account;
+                delete api.session_id;
+            }
+        }
+    });
+
+    mediaLibrary.controller('appController', function($scope, DirectoriesService, APIService){
+
+        $scope.api = APIService.get();
+
+        if ($scope.api.api_key) {
+            $scope.api.account.then(function(data) {
+                $scope.api.account = data;
+            });
+        }
+
+        // Views & Dialogs
+        
+        $scope.view = 'start';
+        $scope.dialog = './views/dialogs/loading.html';
+
+        $scope.getView = function() { return './views/containers/' + $scope.view + '.html' }
+        $scope.setView = function(view) { $scope.view = view }
+        $scope.showDialog = function(dialog) { 
+            $scope.dialog = './views/dialogs/' + dialog + '.html'; 
+            $('#dialog').data('dialog').open();
+        }
+    });
+
+    mediaLibrary.controller('accountController', function($scope, APIService) {
+
+        // Account
+        
+        var clipboard = require('electron').clipboard;
+
+        $scope.api = APIService.get();
+
+        $scope.status = {};
+
+        $scope.setApiKey = function() {
+
+            APIService.setAPIKey($scope.api.api_key);
+
+            $scope.status['api_key'] = 0;
+
+            APIService.get().configuration(function(err, res) {
+                if (! err) {
+                    $scope.status['api_key'] = 1;
+                    $scope.$apply();
+
+                    // Save new API Key
+                    
+                    config.setApiKey(APIService.get().api_key);
+
+                    $scope.getRequestToken();
+                }
+                else {
+                    $scope.status['api_key'] = -1;
+                    $scope.$apply();
+                }
+            });
+        }
+
+        $scope.getRequestToken = function () {
+            
+            $scope.status['request_token'] = 0;
+
+            APIService.get().requestToken(function(err, res) {
+                if (! err) {
+                    $scope.api = APIService.get();
+                    $scope.status['request_token'] = 1;
+                    $scope.$apply();
+                }
+                else {
+                    $scope.status['request_token'] = -1;
+                    $scope.$apply();
+                }
+            });
+        }
+
+        $scope.openSession = function () {
+            
+            $scope.status['session_id'] = 0;
+
+            APIService.get().session(function(err, res) {
+                if (! err) {
+
+                    config.setSessionID(APIService.get().session_id);
+
+                    APIService.get().accountInfo(function(err, res) { 
+                        if (! err) {
+                            APIService.setAccount(res);
+                            $scope.status['session_id'] = 1;
+                            $scope.$apply();
+                        }
+                        else {
+                            $scope.status['session_id'] = -1;
+                            $scope.$apply();
+                            console.log(err);
+                        }
+                    });
+                    
+                }
+                else {
+                    $scope.status['session_id'] = -1;
+                    $scope.$apply();
+                }
+            });
+        }
+
+        $scope.closeSession = function() {
+            $scope.status.session_id = null;
+            APIService.destroySession();
+            $scope.status.request_token = null;
+        }
+
+        $scope.copyToClipboard = function(text) {
+            clipboard.writeText(text);
+        }
+    });
+
+    mediaLibrary.controller('directoriesController', function($scope, DirectoriesService) {
+
+        // Directories
+        
+        $scope.getDirectories = function(media) { return DirectoriesService.getDirectories(media) }
+        $scope.addDirectory = function(newDirectory) { DirectoriesService.addDirectory($('#dialog ul.tabs li.active').attr('data-media'), newDirectory.path, newDirectory.lastModified) }
+        $scope.removeDirectory = function(media, directory) { DirectoriesService.removeDirectory(media, directory) }
+    });
+
+    mediaLibrary.controller('spiderController', function($scope, DirectoriesService, MediaService) {
+
+        // Spider Log
+        
+        $scope.moviesLog = DirectoriesService.getDirectories('movies');
+
+        $scope.init = function() {
+            $scope.indexMovies();
+        }
+
+        $scope.indexMovies = function() {
+
+            Object.keys($scope.moviesLog).forEach(function(directory) {
+
+                $scope.moviesLog[directory] = { entries: [], oks: 0, warns: 0, error: null } 
+
+                mediaSpider.indexMovies(directory, function(error, directory, data) {
+
+                    $scope.moviesLog[directory].entries.push({ warn: error, name: (data.title || data.data.name) });
+
+                    if (error) $scope.moviesLog[directory].warns++;
+                    else {
+                        MediaService.upsertMovie(movie);
+                        $scope.moviesLog[directory].oks++;
+                    }
+
+                    if (data.collection) $scope.$apply() // BUG SHITTY FIX
+
+                }, function(error, directory) {
+                    if (error) {
+                        $scope.moviesLog[directory].entries.push({ error: error });
+                        $scope.moviesLog[directory].error = error;
+                        $scope.$apply()
+                    }
+                });
+            });
+        }
+    });
+
+    mediaLibrary.controller('validationController', function($scope, $timeout, MediaService, APIService) {
+
+        
+        $scope.index = 0;
+        $scope.pending = null
+        $scope.sugestion = null;
+        $scope.auto = true;
+        $scope.end = null;
+
+        var autoResolveNotification = null;
+        var autoResolveProgress = null;
+
+        $timeout( function(){ if ($scope.auto) $scope.autoResolve(); else $scope.getPending() }, 500);
+
+        // Validation
+        
+        $scope.getPending = function() {
+
+            $scope.index = 0;
+            $scope.pending = null;
+            $scope.sugestion = null;
+
+            if ($scope.pending = MediaService.getPending('movie')) {
+
+                APIService.get().searchMovie({ query: $scope.pending.local.title, language: 'es' }, function(err, res) {
+                    $scope.sugestion = res.results;
+                    $scope.$apply();
+                });
+            }
+            else {
+                $scope.end = true;
+            }
+        }
+
+        $scope.showSearch = function() {
+            $scope.sugestion = [];
+        }
+
+        $scope.reSearch = function() {
+            APIService.get().searchMovie({ query: $scope.otherName, language: 'es' }, function(err, res) {
+                $scope.sugestion = res.results;
+                $scope.otherName = '';
+                $scope.$apply();
+            });
+        }
+
+        $scope.prevSugestion = function() { $scope.index-- }
+        $scope.nextSugestion = function() { $scope.index++ }
+        $scope.validate = function () {
+            MediaService.upsertData($scope.pending._id, $scope.sugestion[$scope.index], function() { $scope.getPending() });
+        }
+
+        $scope.autoResolve = function() {
+            
+            if (pending = MediaService.getAutoPending('movie')) {
+
+                if (! autoResolveNotification) {
+                    autoResolveNotification = $.Notify({
+                        type: 'success',
+                        caption: 'Resolviendo...',
+                        content: '<div id="progress-resolve-movies" class="progress ani" data-color="ribbed-amber" data-role="progress"></div>',
+                        icon: "<span class='mif-film'></span>",
+                        keepOpen: true
+                    });
+                }
+                else {
+                    if (!autoResolveProgress) autoResolveProgress = $("#progress-resolve-movies").data('progress');
+                    if (autoResolveProgress) autoResolveProgress.set((database.find({type:'movie',data:{$exists:true}}).count() * 100) / database.find({type:'movie'}).count());
+                }
+
+                APIService.get().searchMovie({ query: pending.local.title, year: pending.local.year, language: 'es' }, function(err, res) {
+                    $timeout( function(){ MediaService.upsertData(pending._id, (res.results[0] ? res.results[0] : 1), function() { $scope.autoResolve() }); }, 500);
+                })
+            }
+            else {
+                if (autoResolveNotification) autoResolveNotification.close();
+                $scope.getPending();
+            }
+        }
+    });
+
+    mediaLibrary.controller('moviesController', function($scope, MediaService) {
+
+        // Movies
+        
+        $scope.movies = MediaService.getMoviesResolved();
+    });
+
+    //--------------------------------------------------------------------------
+    //  Metro
+    //--------------------------------------------------------------------------
+    
+    function showCharms(id){
+        var  charm = $(id).data("charm");
+        if (charm.element.data("opened") === true) {
+            charm.close();
+        } else {
+            charm.open();
+        }
+    }
+    
+    function setSearchPlace(el){
+        var a = $(el);
+        var text = a.text();
+        var toggle = a.parents('label').children('.dropdown-toggle');
+    
+        toggle.text(text);
+    }
+    
+    $(function(){
+        var current_tile_area_scheme = config.getBackground() || "tile-area-scheme-dark";
+        $(".tile-area").removeClass (function (index, css) {
+            return (css.match (/(^|\s)tile-area-scheme-\S+/g) || []).join(' ');
+        }).addClass(current_tile_area_scheme);
+    
+        $(".schemeButtons .button").hover(
+            function(){
+                var b = $(this);
+                var scheme = "tile-area-scheme-" +  b.data('scheme');
+                $(".tile-area").removeClass (function (index, css) {
+                    return (css.match (/(^|\s)tile-area-scheme-\S+/g) || []).join(' ');
+                }).addClass(scheme);
+            },
+            function(){
+                $(".tile-area").removeClass (function (index, css) {
+                    return (css.match (/(^|\s)tile-area-scheme-\S+/g) || []).join(' ');
+                }).addClass(current_tile_area_scheme);
+            }
+        );
+    
+        $(".schemeButtons .button").on("click", function(){
+            var b = $(this);
+            var scheme = "tile-area-scheme-" +  b.data('scheme');
+    
+            $(".tile-area").removeClass (function (index, css) {
+                return (css.match (/(^|\s)tile-area-scheme-\S+/g) || []).join(' ');
+            }).addClass(scheme);
+    
+            current_tile_area_scheme = scheme;
+            config.setBackground(scheme);
+    
+            showSettings();
+        });
+    });
+</script>

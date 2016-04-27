@@ -1,0 +1,48 @@
+<style type="text/css">
+    #dialog {
+        min-width: 400px !important;
+    }
+</style>
+<h1>Cuenta</h1>
+<hr>
+<div ng-controller="accountController">
+
+    <!-- API Key -->
+
+    <label>API Key:</label>
+    <div class="input-control text full-size" data-role="input">
+        <input type="text" style="padding-right: 57px;" ng-model="api.api_key">
+        <button class="button" ng-click="setApiKey()"><span class="{{ status.api_key == 1 ? 'mif-checkmark fg-green' : (status.api_key == -1 ? 'mif-cross fg-red' : (status.api_key == 0 ? 'mif-spinner5 mif-ani-pulse' : 'mif-checkmark'))}}"></span></button>
+    </div>
+
+
+
+    <div ng-show="status.api_key == 1 && !api.session_id">
+
+        <!-- Request Token -->
+
+        <label>Request Token:</label>
+        <div class="input-control text full-size" data-role="input">
+            <input type="text" style="padding-right: 57px;" value="https://www.themoviedb.org/authenticate/{{api.token.request_token}}/allow">
+            <div class="button-group">
+                <button class="button" ng-click="copyToClipboard('https://www.themoviedb.org/authenticate/' + api.token.request_token + '/allow')">copiar</button>
+                <button class="button" ng-click="openSession()"><span class="{{ status.session_id == -1 ? 'mif-arrow-right fg-red' : (status.session_id == 0 ? 'mif-spinner5 mif-ani-pulse' : 'mif-arrow-right')}}"></span></button>
+            </div>
+        </div>
+    </div>
+
+    <div ng-show="api.session_id">
+        <div class="grid">
+            <div class="row cells2">
+                <div class="cell">
+                    <img ng-src="http://gravatar.com/avatar/{{api.account.avatar.gravatar.hash}}" src="assets/images/default-profile.png" class="full-size" data-format="cycle">
+                    <button class="button full-size" ng-click="closeSession()">cerrar sesion</button>
+                </div>
+                <div class="cell">
+                    <h3>{{api.account.name || 'Cargando...'}}</h3><hr>
+                </div>
+            </div>
+            <div class=""></div>
+        </div>
+    </div>
+</div>

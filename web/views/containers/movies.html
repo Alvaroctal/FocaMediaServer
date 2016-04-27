@@ -1,0 +1,47 @@
+<style type="text/css">
+    div.scroll-vert {
+        overflow-y: auto;
+        padding-right: 12px;
+        height: 650px;
+
+    }
+    div.scroll-vert::-webkit-scrollbar {
+        width: 5px;
+    }
+    div.scroll-vert::-webkit-scrollbar-thumb {
+        background: #666; 
+    }
+    div.movie-poster {
+        height: 38%;
+    }
+    div.movie-poster {
+        margin-left: 4px;
+        margin-right: 4px;
+    }
+    div.first-in-row {
+        margin-left: 0px !important;
+    }
+    div.last-in-row {
+        margin-right: 0px !important;
+    }
+</style>
+
+<div id="sub-container" ng-controller="moviesController">
+    <div class="grid">
+        <div class="row cells8">
+            <div class="cell colspan2">
+                <div class="input-control text full-size">
+                    <input type="text" placeholder="Busca por título..." ng-model="search.data.title">
+                </div>
+            </div>
+            <div class="cell">
+                <div class="input-control text full-size">
+                    <input type="text" placeholder="Busca por año..." ng-model="search.data.release_date">
+                </div>
+            </div>
+        </div>
+        <div class="row cells6 scroll-vert">
+            <div class="cell movie-poster {{$index % 6 == 5 ? 'last-in-row' : ($index % 6 == 0 ? 'first-in-row' : '')}}" ng-repeat="movie in movies | filter:search" style="background:url(https://image.tmdb.org/t/p/w185/{{movie.data.poster_path}}) no-repeat center center; -webkit-background-size: cover; {{$index > 5 ? 'margin-top: 12px;' : ''}}"></div>
+        </div>
+    </div>  
+</div>
