@@ -59,6 +59,102 @@ module.exports = {
                 })
             }   
         }); onFinish(null, directory);
+    },
+    indexTvShows: function(directory, onEach, onFinish) {
+
+        fs.readdir(directory, function (err, files) {
+
+            if (err) onFinish('no-directory', directory);
+            else {
+
+                // ForEach TvShow
+                
+                files.forEach(function (tvshowName) {
+
+                    var tvShowPath = path.join(directory, tvshowName);
+                    var stat = fs.statSync(tvShowPath);
+
+                    if (stat.isFile()) onEach('unexpected-file', directory, 'tvshow', { path: tvShowPath, data: {name: tvshowName}  });
+                    else if (stat.isDirectory()) {
+
+                        if (tvShow = media.processTvShow(tvshowName)) {
+
+                            // Valid TvShow
+                            
+                            tvShow['path'] = tvShowPath;
+                            tvShow['seasons'] = []; tvShow['oks'] = 0; tvShow['warns'] = 0;
+                            onEach(null, directory, 'tvshow', tvShow);  
+
+                            // ForEach Season
+
+                            var seasonsNames = fs.readdirSync(tvShowPath);
+                            for (var seasonIndex in seasonsNames) {
+
+                                if (typeof seasonsNames[seasonIndex] === 'string') {
+
+                                    var seasonPath = path.join(tvShowPath, seasonsNames[seasonIndex]);
+                                    var stat = fs.statSync(seasonPath);
+
+                                    if (stat.isFile()) { onEach('unexpected-file', directory, 'season', { name: seasonsNames[seasonIndex], path: seasonPath, tvshow: tvshowName }); tvShow.warns += season.warns; }
+                                    else if (stat.isDirectory()) {
+
+                                        if (season = media.processSeason(seasonsNames[seasonIndex], tvshowName)) {
+
+                                            // Valid Season
+
+                                            season['path'] = seasonPath;
+                                            season['episodes'] = []; season['oks'] = 0; season['warns'] = 0;
+                                            season['episodesError'] = [];
+
+                                            // ForEach Episode
+                                            
+                                            var episodesNames = fs.readdirSync(seasonPath);
+                                            for (var episodeIndex in episodesNames) {
+
+                                                if (path.extname(episodesNames[episodeIndex]) == '.srt') continue;
+                                                if (typeof episodesNames[episodeIndex] === 'string') {
+
+                                                    var episodePath = path.join(seasonPath, episodesNames[episodeIndex]);
+                                                    var stat = fs.statSync(episodePath);
+
+                                                    if (stat.isDirectory()) season.episodesError.push(episodesNames[episodeIndex]);
+                                                    else if (stat.isFile()) {
+
+                                                        if (episode = media.processEpisode(episodesNames[episodeIndex], tvshowName)) {
+
+                                                            // Valid Episode
+                                                            
+                                                            episode['size'] = stat.size;
+                                                            episode['path'] = episodePath;
+                                                            season.episodes.push(episode);
+                                                        }
+                                                        else {
+                                                            season.episodesError.push(episodesNames[episodeIndex]);
+                                                        }
+                                                    }
+                                                }
+                                            }  
+
+                                            season.oks = Object.keys(season.episodes).length; season.warns = Object.keys(season.episodesError).length;
+                                            tvShow.oks += season.oks; tvShow.warns += season.warns;
+                                            tvShow.seasons.push(season);
+                                        }
+                                        else {
+                                            onEach('no-regex', directory, 'season', { name: seasonsNames[seasonIndex], path: seasonPath, tvshow: tvshowName }); tvShow.warns++;
+                                        }
+                                    }
+                                }
+                            }
+
+                            onEach(null, directory, 'tvshow', tvShow); 
+                        }
+                        else {
+                            onEach('no-regex-tvshow', directory, 'tvshow', { name: tvshowName, path: tvShowPath });
+                        }
+                    }
+                })
+            }   
+        })
     }
 }
 
