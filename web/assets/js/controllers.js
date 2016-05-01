@@ -366,9 +366,10 @@ mediaLibrary.controller('validationController', function($scope, $timeout, Media
     // Get Movie
 
     $scope.getMovie = function(id, callback) {
-        APIService.get().movieInfo({id: id, language: lang}, function(err, movie){
+        APIService.get().movieInfo({id: id, language: lang, append_to_response: "videos,images"}, function(err, movie){
             MediaService.upsertData($scope.pending._id, (movie ? movie : -1));
 
+            cachePoster(movie);
             $timeout(callback, delay);
         });
     }
@@ -376,7 +377,9 @@ mediaLibrary.controller('validationController', function($scope, $timeout, Media
     // Get TvShow
 
     $scope.getTvShow = function(id, callback) {
-        APIService.get().tvInfo({id: id, language: lang}, function(err, tvshow){
+        APIService.get().tvInfo({id: id, language: lang, append_to_response: "videos,images"}, function(err, tvshow) {
+
+            cachePoster(tvshow);
             
             // Get seasons
             
@@ -405,11 +408,23 @@ mediaLibrary.controller('validationController', function($scope, $timeout, Media
     // Get Season
 
     $scope.getTvSeason = function(id, season_number, callback) {
-        APIService.get().tvSeasonInfo({id: id, season_number: season_number, language: lang}, function(err, res){
-            MediaService.upsertData($scope.pending._id, (res ? res : -1));
-        
-            $timeout(function() { callback(res) }, delay);
+        APIService.get().tvSeasonInfo({id: id, season_number: season_number, language: lang, append_to_response: "videos,images"}, function(err, season){
+            MediaService.upsertData($scope.pending._id, (season ? season : -1));
+            
+            cachePoster(season);
+            $timeout(function() { callback(season) }, delay);
         });
+    }
+
+    var cachePoster = function(media) {
+        try {
+            var file = fs.createWriteStream(path.join(process.cwd(), 'data', 'mirror', 't', 'p', 'w92', media.poster_path));
+            var request = https.get("https://image.tmdb.org/t/p/w92" + media.poster_path, function(response) {
+                response.pipe(file);
+            });
+        } catch (e) {
+            console.log(media);
+        }
     }
 
     // Automatic Resolve

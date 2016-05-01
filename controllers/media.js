@@ -10,7 +10,7 @@ module.exports = {
         movie: /^([0-9a-zA-Zá-úü\(\)\.\- ]*) \(([0-9]*)\) \[([0-9]*)\] \[(Dual|Cast|VOSE)\]/,
         tvshowRegex: /^([0-9a-zA-Zá-úü\(\)\.\- ]*)$/,
         seasonRegex: /^([0-9a-zA-Zá-úü\(\)\.\- ]*) - (Temporada|Season) ([0-9]*) \(([0-9]*)\) - (SD|720|1080) \[(Cast|Dual|VOSE)\]$/,
-        episodeRegex: /^([0-9a-zA-Zá-úÁ-Úü\(\)\.\- ]*) ([0-9]*)x([0-9]*) - ([0-9a-zA-Zá-úÁ-Úü\(\).,\-'&!¡_¿? ]*)\.([a-zA-Z0-0]*)$/
+        episodeRegex: /^([0-9a-zA-Zá-úÁ-Úü\(\)\.\- ]*) ([0-9]*)x([0-9]*) - ([0-9a-zA-Zá-úÁ-Úü\(\).,\-'&!¡_¿? ]*)\.([a-zA-Z0-9]*)$/
     },
     processMovie: function(fileName) {
         var movie = null;
@@ -34,26 +34,26 @@ module.exports = {
 
         return tvshow;
     },
-    processSeason: function(seasonName, tvshowName) {
+    processSeason: function(seasonName, tvshow) {
 
         var season = null;
         
         var match = this.patterns.seasonRegex.exec(seasonName.normalize());
         if (match) {
             season = { tvshow: match[1], number: parseInt(match[3]), year: parseInt(match[4]), video: match[5], audio: match[6] }
-            if (season.tvshow != tvshowName) episode = null;
+            if (season.tvshow != tvshow.name) episode = null;
         }
 
         return season;
     },
-    processEpisode: function(episodeName, tvshowName) {
+    processEpisode: function(episodeName, season) {
 
         var episode = null;
         
         var match = this.patterns.episodeRegex.exec(episodeName.normalize());
         if (match) {
             episode = { tvshow: match[1], season: parseInt(match[2]), number: parseInt(match[3]), name: match[4], ext: match[5] }
-            if (episode.tvshow != tvshowName) episode = null;
+            if (episode.tvshow != season.tvshow || episode.season != season.number) episode = null;
         }
 
         return episode;

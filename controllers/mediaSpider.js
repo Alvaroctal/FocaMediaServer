@@ -77,13 +77,13 @@ module.exports = {
                     if (stat.isFile()) onEach('unexpected-file', directory, 'tvshow', { path: tvShowPath, data: {name: tvshowName}  });
                     else if (stat.isDirectory()) {
 
-                        if (tvShow = media.processTvShow(tvshowName)) {
+                        if (tvshow = media.processTvShow(tvshowName)) {
 
                             // Valid TvShow
                             
-                            tvShow['path'] = tvShowPath;
-                            tvShow['seasons'] = []; tvShow['oks'] = 0; tvShow['warns'] = 0;
-                            onEach(null, directory, 'tvshow', tvShow);  
+                            tvshow['path'] = tvShowPath;
+                            tvshow['seasons'] = []; tvshow['oks'] = 0; tvshow['warns'] = 0;
+                            onEach(null, directory, 'tvshow', tvshow);  
 
                             // ForEach Season
 
@@ -95,10 +95,10 @@ module.exports = {
                                     var seasonPath = path.join(tvShowPath, seasonsNames[seasonIndex]);
                                     var stat = fs.statSync(seasonPath);
 
-                                    if (stat.isFile()) { onEach('unexpected-file', directory, 'season', { name: seasonsNames[seasonIndex], path: seasonPath, tvshow: tvshowName }); tvShow.warns += season.warns; }
+                                    if (stat.isFile()) { onEach('unexpected-file', directory, 'season', { name: seasonsNames[seasonIndex], path: seasonPath, tvshow: tvshowName }); tvshow.warns += season.warns; }
                                     else if (stat.isDirectory()) {
 
-                                        if (season = media.processSeason(seasonsNames[seasonIndex], tvshowName)) {
+                                        if (season = media.processSeason(seasonsNames[seasonIndex], tvshow)) {
 
                                             // Valid Season
 
@@ -120,7 +120,7 @@ module.exports = {
                                                     if (stat.isDirectory()) season.episodesError.push(episodesNames[episodeIndex]);
                                                     else if (stat.isFile()) {
 
-                                                        if (episode = media.processEpisode(episodesNames[episodeIndex], tvshowName)) {
+                                                        if (episode = media.processEpisode(episodesNames[episodeIndex], season)) {
 
                                                             // Valid Episode
                                                             
@@ -136,17 +136,17 @@ module.exports = {
                                             }  
 
                                             season.oks = Object.keys(season.episodes).length; season.warns = Object.keys(season.episodesError).length;
-                                            tvShow.oks += season.oks; tvShow.warns += season.warns;
-                                            tvShow.seasons.push(season);
+                                            tvshow.oks += season.oks; tvshow.warns += season.warns;
+                                            tvshow.seasons.push(season);
                                         }
                                         else {
-                                            onEach('no-regex', directory, 'season', { name: seasonsNames[seasonIndex], path: seasonPath, tvshow: tvshowName }); tvShow.warns++;
+                                            onEach('no-regex', directory, 'season', { name: seasonsNames[seasonIndex], path: seasonPath, tvshow: tvshowName }); tvshow.warns++;
                                         }
                                     }
                                 }
                             }
 
-                            onEach(null, directory, 'tvshow', tvShow); 
+                            onEach(null, directory, 'tvshow', tvshow); 
                         }
                         else {
                             onEach('no-regex-tvshow', directory, 'tvshow', { name: tvshowName, path: tvShowPath });

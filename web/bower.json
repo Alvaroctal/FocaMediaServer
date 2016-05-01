@@ -1,0 +1,29 @@
+{
+  "name": "FocaMediaServer",
+  "homepage": "https://github.com/Alvaroctal/FocaMediaServer",
+  "authors": [
+    "Alvaro Octal"
+  ],
+  "description": "A Media Library in Streaming",
+  "main": "index.html",
+  "keywords": [
+    "FocaMedia",
+    "Streaming",
+    "Media",
+    "Library",
+    "Movies",
+    "TvShows"
+  ],
+  "license": "MIT",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "metro-dist": "^3.0.14"
+  }
+}
