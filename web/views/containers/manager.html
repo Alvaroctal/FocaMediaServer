@@ -73,18 +73,18 @@
             <div class="cell">
                 <div class="grid">
                     <div class="row" ng-controller="validationController">
-                        <div class="cell" data-role="preloader" data-type="cycle" ng-hide="pending.sugestions || end"></div>
-                        <div class="cell" ng-hide="!end">
+                        <div class="cell" data-role="preloader" data-type="cycle" ng-show="auto"></div>
+                        <div class="cell" ng-show="!auto && !pending">
                             <h2>Hecho</h2><hr>
                             <h4>Se han reconocido todos los archivos.</h4>
                             <br><br>
                             <center><span class="mif-thumbs-up mif-4x"></span></center>
                         </div>
-                        <div class="cell" ng-hide="!pending.sugestions || pending.sugestions[index]">
-                            <h3>{{pending.local.title}}</h3><hr>
+                        <div class="cell" ng-show="!auto && pending && !pending.sugestions[index]">
+                            <h3>{{pending.local.title || pending.local.name}}</h3><hr>
                             <div class="input-control text full-size" data-role="input">
                                 <input type="text" placeholder="busca por otro nombre..." ng-model="otherName">
-                                <button class="button" ng-click="reSearch()"><span class="mif-search"></span></button>
+                                <button class="button" ng-click="reSearch(pending.type)"><span class="mif-search"></span></button>
                             </div>
                         </div>
                         <div class="cell" ng-show="pending.sugestions[index]">
@@ -96,14 +96,14 @@
                                     <div id="validation-data" class="cell">
                                         <center>API</center>
                                         <ul>
-                                            <li>Titulo: {{pending.sugestions[index].title}}</span></li>
-                                            <li>Año: {{pending.sugestions[index].release_date}}</span></li>
+                                            <li>Titulo: {{pending.sugestions[index].title || pending.sugestions[index].name}}</span></li>
+                                            <li ng-show="pending.type == 'movie'">Año: {{pending.sugestions[index].release_date}}</span></li>
                                         </ul>
                                         <hr/>
                                         <center>Local</center>
                                         <ul>
-                                            <li>Titulo: {{pending.local.title}}</li>
-                                            <li>Año: {{pending.local.year}}</li>
+                                            <li>Titulo: {{pending.local.title || pending.local.name}}</li>
+                                            <li ng-show="pending.type == 'movie'">Año: {{pending.local.year}}</li>
                                         </ul>
                                         <div class="row place-bottom">
 
@@ -118,11 +118,11 @@
 
                                             <!-- Validate Movie -->
 
-                                            <button class="button success place-right" ng-click="getMovie(pending.sugestions[index].id, resolve)" ng-show="pending.type == 'movie'">Validar</button>
+                                            <button class="button success place-right" ng-click="getMovie(pending.sugestions[index].id, resolve)" ng-show="pending.type == 'movie'" ng-disabled="pending.working">Validar</button>
 
                                             <!-- Validate TVShow -->
 
-                                            <button class="button success place-right" ng-click="getTvShow(pending.sugestions[index].id, resolve)" ng-show="pending.type == 'tvshow'">Validar</button>
+                                            <button class="button success place-right" ng-click="getTvShow(pending.sugestions[index].id, resolve)" ng-show="pending.type == 'tvshow'" ng-disabled="pending.working">Validar</button>
                                         </div>
                                     </div>
                                 </div>

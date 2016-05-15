@@ -80,8 +80,8 @@ mediaLibrary.factory('MediaService', function() {
                 }
             );
         },
-        getMoviesResolved: function() {
-            return mediaCollection.find({type: 'movie',data:{$exists:true}}).rows;
+        getResolved: function(type, callback) {
+            return db.find({type: type, $not: {data: {$gt:-2}}}, callback);
         }
     }
 });
@@ -154,6 +154,33 @@ mediaLibrary.controller('appController', function($scope, DirectoriesService, AP
         $scope.dialog = './views/dialogs/' + dialog + '.html'; 
         $('#dialog').data('dialog').open();
     }
+
+    // Server Code, will be refactored
+    
+    var http = require('http');
+    var polo = require('polo');
+    var port = 14123;
+    var apps = polo({ monitor: true });
+
+    var server = http.createServer(function(req, res) {
+
+        var output = {};
+
+        if (req.url === '/') output = { status: 1, action: 'status', data: 'everything looks fine here.' }
+        else if (req.url == '/index') output = { status: 1, action: 'index', data: db.getAllData()}
+
+        console.log(req.url);
+
+        res.end(JSON.stringify(output));
+    });
+
+    server.listen(port, function() {
+
+        apps.put({
+            name: 'foca-media',
+            port: port
+        });
+    });
 });
 
 //------------------------------------------------------------------------------
@@ -349,12 +376,9 @@ mediaLibrary.controller('spiderController', function($scope, DirectoriesService,
 
 mediaLibrary.controller('validationController', function($scope, $timeout, MediaService, APIService) {
 
-    
     $scope.index = 0;
     $scope.pending = null;
     $scope.auto = true;
-
-    $scope.end = null;
 
     var autoResolveNotification = null;
     var autoResolveProgress = null;
@@ -366,6 +390,9 @@ mediaLibrary.controller('validationController', function($scope, $timeout, Media
     // Get Movie
 
     $scope.getMovie = function(id, callback) {
+
+        if ($scope.pending) $scope.pending.working = true;
+
         APIService.get().movieInfo({id: id, language: lang, append_to_response: "videos,images"}, function(err, movie){
             MediaService.upsertData($scope.pending._id, (movie ? movie : -1));
 
@@ -377,6 +404,9 @@ mediaLibrary.controller('validationController', function($scope, $timeout, Media
     // Get TvShow
 
     $scope.getTvShow = function(id, callback) {
+
+        if ($scope.pending) $scope.pending.working = true;
+
         APIService.get().tvInfo({id: id, language: lang, append_to_response: "videos,images"}, function(err, tvshow) {
 
             cachePoster(tvshow);
@@ -512,35 +542,50 @@ mediaLibrary.controller('validationController', function($scope, $timeout, Media
         $scope.index = 0;
         $scope.pending = null;
 
-        if ($scope.pending = MediaService.getPending()) {
+        MediaService.getPending(function(err, res) {
 
-            if ($scope.pending.type == 'movie') {
+            if (res) {
 
-                APIService.get().searchMovie({ query: $scope.pending.local.title, language: lang }, function(err, res) {
-                    $scope.pending.sugestions = res.results;
-                    $scope.$apply();
-                });
+                $scope.pending = res;
+                $scope.pending.working = false;
+
+                if ($scope.pending.type == 'movie') {
+
+                    APIService.get().searchMovie({ query: $scope.pending.local.title, language: lang }, function(err, res) {
+                        $scope.pending.sugestions = res.results;
+                        $scope.$apply();
+                    });
+                }
+                else if ($scope.pending.type == 'tvshow') {
+                    APIService.get().searchTv({ query: $scope.pending.local.name, language: lang }, function(err, res) {
+                        $scope.pending.sugestions = res.results;
+                        $scope.$apply();
+                    });
+                }
             }
-            else if ($scope.pending.type == 'tvshow') {
-
+            else {
+                $scope.pending = null;
+                $scope.$apply();
             }
-        }
-        else {
-            $scope.end = true;
-        }
+        })
     }
 
     $scope.showSearch = function() {
         $scope.pending.sugestions = [];
     }
 
-    $scope.reSearch = function() {
-        APIService.get().searchMovie({ query: $scope.otherName, language: lang }, function(err, res) {
+    $scope.reSearch = function(type) {
+
+        var callback = function(err, res) {
             $scope.pending.sugestions = res.results;
             $scope.otherName = '';
             $scope.index = 0;
             $scope.$apply();
-        });
+        };
+
+        if (type == 'movie') APIService.get().searchMovie({ query: $scope.otherName, language: lang }, callback);
+        else if (type == 'tvshow') APIService.get().searchTv({ query: $scope.otherName, language: lang }, callback);
+        else console.log('Error: no-type');
     }
 
     $scope.prevSugestion = function() { $scope.index-- }
@@ -555,5 +600,13 @@ mediaLibrary.controller('moviesController', function($scope, MediaService) {
 
     // Movies
     
-    $scope.movies = MediaService.getMoviesResolved();
+    MediaService.getResolved('movie', function(err, res) {
+        if (!err) {
+            $scope.movies = res;
+            $scope.$apply();
+        }
+        else {
+            console.log(err);
+        }
+    });
 });

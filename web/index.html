@@ -162,12 +162,12 @@
     //--------------------------------------------------------------------------
 
     var path = require('path');
-
-    var config = require(path.join(process.cwd(), 'controllers', 'config'));
-    config.load();
-    var mediaSpider = config.getSpider();
     var fs = require('fs');
     var https = require('https');
+
+    var config = require(path.join(process.cwd(), 'controllers', 'config')); 
+    config.load();
+    var mediaSpider = config.getSpider();
 
 </script>
 
