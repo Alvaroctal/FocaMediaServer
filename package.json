@@ -1,5 +1,6 @@
 {
   "name": "FocaMediaServer",
+  "productName": "Foca Media",
   "version": "1.0.0",
   "description": "Your streaming media center",
   "main": "main.js",
@@ -21,10 +22,12 @@
     "electron-prebuilt": "^1.0.1"
   },
   "dependencies": {
+    "electron-json-storage": "^2.0.0",
     "electron-plugins": "^0.1.0",
     "electron-updater": "^0.3.1",
     "http": "0.0.0",
     "https": "^1.0.0",
+    "mkdirp": "^0.5.1",
     "moviedb": "https://github.com/impronunciable/moviedb/tarball/master",
     "nedb": "^1.8.0"
   }

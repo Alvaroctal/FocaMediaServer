@@ -164,10 +164,7 @@
     var path = require('path');
     var fs = require('fs');
     var https = require('https');
-
-    var config = require(path.join(process.cwd(), 'controllers', 'config')); 
-    config.load();
-    var mediaSpider = config.getSpider();
+    var mediaSpider = require(path.join(process.cwd(), 'controllers', 'mediaSpider'));
 
 </script>
 
@@ -197,7 +194,7 @@
     }
     
     $(function(){
-        var current_tile_area_scheme = config.getBackground() || "tile-area-scheme-dark";
+        var current_tile_area_scheme = "tile-area-scheme-dark";
         $(".tile-area").removeClass (function (index, css) {
             return (css.match (/(^|\s)tile-area-scheme-\S+/g) || []).join(' ');
         }).addClass(current_tile_area_scheme);
@@ -226,7 +223,6 @@
             }).addClass(scheme);
     
             current_tile_area_scheme = scheme;
-            config.setBackground(scheme);
     
             showSettings();
         });

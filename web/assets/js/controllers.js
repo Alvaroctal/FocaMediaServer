@@ -1,35 +1,74 @@
 var mediaLibrary = angular.module('MediaLibrary', ['file-model']);
 
+var userDataPath = require('electron').remote.app.getPath('userData');
+
+//------------------------------------------------------------------------------
+//  Storage Service
+//------------------------------------------------------------------------------
+
+mediaLibrary.factory('StorageService', function($q){
+    
+    var data = null;
+    const storage = require('electron-json-storage');
+    var def = $q.defer();
+
+    storage.get('config', function(error, loadedData) {
+
+        console.log()
+
+        if (error) def.reject(error);
+        else {
+            data = loadedData.directories ? loadedData : {'directories': {'movies': {}, 'tvshows': {}}};
+            def.resolve();
+        }
+    });
+
+    return {
+        load: function() {
+            return def.promise;
+        },
+        get: function(key) {
+            return data[key];
+        },
+        set: function(key, value) {
+            data[key] = value;
+            storage.set('config', data);
+        }
+    }
+});
+
 //------------------------------------------------------------------------------
 //  Directories Service
 //------------------------------------------------------------------------------
 
-mediaLibrary.factory('DirectoriesService', function () {
+mediaLibrary.factory('DirectoriesService', ['StorageService', function (StorageService) {
 
-    var directories = config.getDirectories();
-    if (!directories) directories = { 'movies': {}, 'tvshows': {} };
-
+    var directories = null;
+    StorageService.load().then(function() {
+        directories = StorageService.get('directories');
+    });
+    
     return {
         getDirectories: function (media) {
             return directories[media];
         },
         addDirectory: function (media, path, timestamp) {
             directories[media][path] = timestamp;
-            config.setDirectories(directories);
+            StorageService.set('directories', directories);
         },
         removeDirectory: function (media, path) {
             delete directories[media][path];
-            config.setDirectories(directories);
+            StorageService.set('directories', directories);
         }
     };
-});
+}]);
 
 //------------------------------------------------------------------------------
 //  Media Service
 //------------------------------------------------------------------------------
 
 var Datastore = require('nedb');  
-var db = new Datastore({ filename: path.join(process.cwd(), 'data', 'db.json'), autoload: true });
+var db = new Datastore({ filename: path.join(userDataPath, 'db.json'), autoload: true });
 
 mediaLibrary.factory('MediaService', function() {
 
@@ -90,24 +129,27 @@ mediaLibrary.factory('MediaService', function() {
 //  API Service
 //------------------------------------------------------------------------------
 
-mediaLibrary.factory('APIService', function($q) {
+mediaLibrary.factory('APIService', ['$q', 'StorageService', function($q, StorageService) {
+
     var api = [];
 
-    if (config.getApiKey()) {
-        api = require('moviedb')(config.getApiKey());
-        api.session_id = config.getSessionID();
+    StorageService.load().then(function() {
+        if (StorageService.get('api_key')) {
+            api = require('moviedb')(StorageService.get('api_key'));
+            api.session_id = StorageService.get('session_id');
 
-        var def = $q.defer();
+            var def = $q.defer();
 
-        if (api.session_id) {
-            api.accountInfo(function(err, res) {
-                if (! err) def.resolve(res);
-                else def.reject(err);
-            });
+            if (api.session_id) {
+                api.accountInfo(function(err, res) {
+                    if (! err) def.resolve(res);
+                    else def.reject(err);
+                });
+            }
+
+            api['account'] = def.promise;
         }
-
-        api['account'] = def.promise;
-    }
+    });
 
     return {
         get: function() {
@@ -127,7 +169,7 @@ mediaLibrary.factory('APIService', function($q) {
             delete api.session_id;
         }
     }
-});
+}]);
 
 //------------------------------------------------------------------------------
 //  Aplication Controller
@@ -187,7 +229,7 @@ mediaLibrary.controller('appController', function($scope, DirectoriesService, AP
 //  Account Controller
 //------------------------------------------------------------------------------
 
-mediaLibrary.controller('accountController', function($scope, APIService) {
+mediaLibrary.controller('accountController', function($scope, APIService, StorageService) {
 
     // Account
     
@@ -210,7 +252,7 @@ mediaLibrary.controller('accountController', function($scope, APIService) {
 
                 // Save new API Key
                 
-                config.setApiKey(APIService.get().api_key);
+                StorageService.set('api_key', APIService.get().api_key);
 
                 $scope.getRequestToken();
             }
@@ -242,10 +284,13 @@ mediaLibrary.controller('accountController', function($scope, APIService) {
         
         $scope.status['session_id'] = 0;
 
-        APIService.get().session(function(err, res) {
+        console.log(APIService.get());
+
+        APIService.get().session(function(err) {
+            console.log(err);
             if (! err) {
 
-                config.setSessionID(APIService.get().session_id);
+                StorageService.set('session_id', APIService.get().session_id);
 
                 APIService.get().accountInfo(function(err, res) { 
                     if (! err) {
@@ -385,6 +430,10 @@ mediaLibrary.controller('validationController', function($scope, $timeout, Media
     var delay = 300;
     var lang = 'es';
 
+    var posterWidths = [92, 154, 185];
+    var mkdirp = require('mkdirp');
+    posterWidths.forEach(function(posterWidth) { mkdirp(path.join(userDataPath, 'mirror', 't', 'p', 'w' + posterWidth), function (err) { if (err) console.error(err) }) });
+
     $timeout( function(){ if ($scope.auto) $scope.autoResolve(); else $scope.getPending() }, 500);
 
     // Get Movie
@@ -447,13 +496,12 @@ mediaLibrary.controller('validationController', function($scope, $timeout, Media
     }
 
     var cachePoster = function(media) {
-        try {
-            var file = fs.createWriteStream(path.join(process.cwd(), 'data', 'mirror', 't', 'p', 'w92', media.poster_path));
-            var request = https.get("https://image.tmdb.org/t/p/w92" + media.poster_path, function(response) {
-                response.pipe(file);
-            });
-        } catch (e) {
-            console.log(media);
+        if (media.poster_path) {
+            posterWidths.forEach(function(posterWidth) { 
+                https.get("https://image.tmdb.org/t/p/w" + posterWidth + media.poster_path, function(response) {
+                    if (response.statusCode === 200) response.pipe(fs.createWriteStream(path.join(userDataPath, 'mirror', 't', 'p', 'w' + posterWidth, media.poster_path))); 
+                })
+            })
         }
     }
 
