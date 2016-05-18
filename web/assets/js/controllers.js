@@ -54,11 +54,11 @@ mediaLibrary.factory('DirectoriesService', ['StorageService', function (StorageS
         },
         addDirectory: function (media, path, timestamp) {
             directories[media][path] = timestamp;
-            StorageService.set('directories', directories);
+            StorageService.set('directories', angular.copy(directories));
         },
         removeDirectory: function (media, path) {
             delete directories[media][path];
-            StorageService.set('directories', directories);
+            StorageService.set('directories', angular.copy(directories));
         }
     };
 }]);
@@ -121,6 +121,19 @@ mediaLibrary.factory('MediaService', function() {
         },
         getResolved: function(type, callback) {
             return db.find({type: type, $not: {data: {$gt:-2}}}, callback);
+        },
+        getWatchlist: function(media_type, callback) {
+            db.find({ watchlist: true, type: media_type }, callback);
+        },
+        watchlist: function(media_id, watchlist, callback) {
+            db.update( 
+                { "data.id": parseInt(media_id) },
+                {   
+                    $set: {
+                        watchlist: watchlist ? true : false
+                    }
+                }, callback
+            );
         }
     }
 });
@@ -132,26 +145,37 @@ mediaLibrary.factory('MediaService', function() {
 mediaLibrary.factory('APIService', ['$q', 'StorageService', function($q, StorageService) {
 
     var api = [];
+    var created = $q.defer();
+    var connected = $q.defer();
 
     StorageService.load().then(function() {
         if (StorageService.get('api_key')) {
+
             api = require('moviedb')(StorageService.get('api_key'));
             api.session_id = StorageService.get('session_id');
 
-            var def = $q.defer();
-
             if (api.session_id) {
                 api.accountInfo(function(err, res) {
-                    if (! err) def.resolve(res);
-                    else def.reject(err);
+                    
+                    if (! err) {
+                        connected.resolve(res);
+                        api.account = res;
+                    }
+                    else created.reject(err);
                 });
             }
 
-            api['account'] = def.promise;
+            created.resolve(api);
         }
     });
 
     return {
+        load: function() {
+            return created.promise;
+        },
+        connect: function() {
+            return connected.promise;
+        },
         get: function() {
             return api;
         },
@@ -175,15 +199,9 @@ mediaLibrary.factory('APIService', ['$q', 'StorageService', function($q, Storage
 //  Aplication Controller
 //------------------------------------------------------------------------------
 
-mediaLibrary.controller('appController', function($scope, DirectoriesService, APIService){
+mediaLibrary.controller('appController', function($scope, DirectoriesService, APIService, MediaService){
 
-    $scope.api = APIService.get();
-
-    if ($scope.api.api_key) {
-        $scope.api.account.then(function(data) {
-            $scope.api.account = data;
-        });
-    }
+    APIService.connect().then(function(data) { $scope.account = data });
 
     // Views & Dialogs
     
@@ -199,30 +217,63 @@ mediaLibrary.controller('appController', function($scope, DirectoriesService, AP
 
     // Server Code, will be refactored
     
-    var http = require('http');
     var polo = require('polo');
     var port = 14123;
     var apps = polo({ monitor: true });
+    var express = require('express');
+    var bodyParser = require('body-parser')
+    var app = express();
+    app.use(bodyParser.json());
+    app.use(bodyParser.urlencoded({ extended: true })); 
+    app.use('/mirror', express.static(path.join(userDataPath, 'mirror')));
 
-    var server = http.createServer(function(req, res) {
-
-        var output = {};
-
-        if (req.url === '/') output = { status: 1, action: 'status', data: 'everything looks fine here.' }
-        else if (req.url == '/index') output = { status: 1, action: 'index', data: db.getAllData()}
-
-        console.log(req.url);
-
-        res.end(JSON.stringify(output));
-    });
-
-    server.listen(port, function() {
-
-        apps.put({
-            name: 'foca-media',
-            port: port
+    app.get('/', function (req, res) { res.json({ status: 1, action: 'status', data: 'everything looks fine here.' }) });
+    app.get('/index', function (req, res) { res.json({ status: 1, action: 'index', data: db.getAllData() }) });
+    app.get('/watchlist/movies/', function (req, res) { 
+        MediaService.getWatchlist('movie', function(err, result) {
+            if (!err) {
+                res.json({ status: 1, action: 'get-watchlist-movies', data: result });
+            } else {
+                res.json({ status: 0, action: 'get-watchlist-movies', data: '' });
+            }
         });
     });
+    app.get('/watchlist/tv/', function (req, res) { 
+        MediaService.getWatchlist('tvshow', function(err, result) {
+            if (!err) {
+                res.json({ status: 1, action: 'get-watchlist-tv', data: result });
+            } else {
+                res.json({ status: 0, action: 'get-watchlist-tv', data: '' });
+            }
+        });
+    });
+    app.post('/watchlist', function (req, res) { 
+
+        MediaService.watchlist(req.body.media_id, req.body.watchlist, function(err, result) {
+            if (!err) {
+                console.log(req.body);
+                res.json({ status: 1, action: 'watchlist', data: result });
+            } else {
+                res.json({ status: 0, action: 'watchlist', data: result });
+            }
+        });
+
+        /*if ($scope.account) {
+            APIService.get().accountWatchlist({ "id": APIService.get().account.id, "media_type": req.body.media_type, "media_id": req.body.media_id, "watchlist": req.body.watchlist }, function(err, res) {
+                console.log(err);
+                console.log(JSON.stringify(res));
+            });
+        }*/
+    });
+    app.use(function(req,res){
+        res.status(404);
+        res.json({ status: 0, action: 'not-found', data: 'Not Found' });
+    });
+
+    app.listen(port, function() {
+        apps.put({ name: 'foca-media', port: port });
+    });
+
 });
 
 //------------------------------------------------------------------------------
@@ -233,9 +284,9 @@ mediaLibrary.controller('accountController', function($scope, APIService, Storag
 
     // Account
     
-    var clipboard = require('electron').clipboard;
+    APIService.load().then(function(data) { $scope.api = data });
 
-    $scope.api = APIService.get();
+    var clipboard = require('electron').clipboard;
 
     $scope.status = {};
 
@@ -287,7 +338,7 @@ mediaLibrary.controller('accountController', function($scope, APIService, Storag
         console.log(APIService.get());
 
         APIService.get().session(function(err) {
-            console.log(err);
+            
             if (! err) {
 
                 StorageService.set('session_id', APIService.get().session_id);

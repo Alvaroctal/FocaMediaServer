@@ -118,11 +118,11 @@
 
                                             <!-- Validate Movie -->
 
-                                            <button class="button success place-right" ng-click="getMovie(pending.sugestions[index].id, resolve)" ng-show="pending.type == 'movie'" ng-disabled="pending.working">Validar</button>
+                                            <button class="button success place-right" ng-click="getMovie(pending.sugestions[index].id, resolve)" ng-show="pending.type == 'movie'" ng-disabled="pending.working"><span class="mif-spinner2 mif-ani-spin" ng-show="pending.working"></span> Validar</button>
 
                                             <!-- Validate TVShow -->
 
-                                            <button class="button success place-right" ng-click="getTvShow(pending.sugestions[index].id, resolve)" ng-show="pending.type == 'tvshow'" ng-disabled="pending.working">Validar</button>
+                                            <button class="button success place-right" ng-click="getTvShow(pending.sugestions[index].id, resolve)" ng-show="pending.type == 'tvshow'" ng-disabled="pending.working"><span class="mif-spinner2 mif-ani-spin" ng-show="pending.working"></span> Validar</button>
                                         </div>
                                     </div>
                                 </div>
