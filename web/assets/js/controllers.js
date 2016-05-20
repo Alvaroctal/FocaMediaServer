@@ -18,7 +18,7 @@ mediaLibrary.factory('StorageService', function($q){
 
         if (error) def.reject(error);
         else {
-            data = loadedData.directories ? loadedData : {'directories': {'movies': {}, 'tvshows': {}}};
+            data = loadedData.directories ? loadedData : {'directories': {'movies': {}, 'tvshows': {}}, 'stream': { 'mode': 'cache'}};
             def.resolve();
         }
     });
@@ -78,6 +78,9 @@ mediaLibrary.factory('MediaService', function() {
         createID: function(media) {
             return crypto.createHash('sha1').update(media.path).digest('hex')
         },
+        getByID: function(id, callback) {
+            db.findOne({ 'data.id': parseInt(id) }, callback);
+        },
         getAutoPending: function(callback) {
             db.findOne({data:{$exists:false}}, callback)
         },
@@ -127,7 +130,7 @@ mediaLibrary.factory('MediaService', function() {
         },
         watchlist: function(media_id, watchlist, callback) {
             db.update( 
-                { "data.id": parseInt(media_id) },
+                { 'data.id': parseInt(media_id) },
                 {   
                     $set: {
                         watchlist: watchlist ? true : false
@@ -199,7 +202,7 @@ mediaLibrary.factory('APIService', ['$q', 'StorageService', function($q, Storage
 //  Aplication Controller
 //------------------------------------------------------------------------------
 
-mediaLibrary.controller('appController', function($scope, DirectoriesService, APIService, MediaService){
+mediaLibrary.controller('appController', function($scope, $timeout, DirectoriesService, APIService, MediaService){
 
     APIService.connect().then(function(data) { $scope.account = data });
 
@@ -221,7 +224,8 @@ mediaLibrary.controller('appController', function($scope, DirectoriesService, AP
     var port = 14123;
     var apps = polo({ monitor: true });
     var express = require('express');
-    var bodyParser = require('body-parser')
+    var bodyParser = require('body-parser');
+    var Transcoder = require('stream-transcoder')
     var app = express();
     app.use(bodyParser.json());
     app.use(bodyParser.urlencoded({ extended: true })); 
@@ -259,15 +263,81 @@ mediaLibrary.controller('appController', function($scope, DirectoriesService, AP
         });
 
         /*if ($scope.account) {
-            APIService.get().accountWatchlist({ "id": APIService.get().account.id, "media_type": req.body.media_type, "media_id": req.body.media_id, "watchlist": req.body.watchlist }, function(err, res) {
+            APIService.get().accountWatchlist({ 'id': APIService.get().account.id, 'media_type': req.body.media_type, 'media_id': req.body.media_id, 'watchlist': req.body.watchlist }, function(err, res) {
                 console.log(err);
                 console.log(JSON.stringify(res));
             });
         }*/
     });
+
+    var convert = function(pathIn, pathOut) {
+        var streamIn = fs.createReadStream(pathIn);
+        var streamOut = fs.createWriteStream(pathOut);
+
+        new Transcoder(streamIn)
+            .maxSize(1280, 720)
+            .videoCodec('h264')
+            .videoBitrate(800 * 1000)
+            .fps(24)
+            .audioCodec('aac')
+            .sampleRate(44100)
+            .channels(2)
+            .audioBitrate(128 * 1000)
+            .format('mp4')
+            .on('finish', function() {
+                console.log('a ver que podemos borrar');
+            })
+            .stream().pipe(streamOut);
+    }
+
     app.use(function(req,res){
-        res.status(404);
-        res.json({ status: 0, action: 'not-found', data: 'Not Found' });
+
+        var matchMovie = /^\/mirror\/watch\/movie-([0-9]*).mp4$/.exec(req.url);
+        var matchTvEpisode = /^\/mirror\/watch\/tvshow-([0-9]*)-([0-9]*)-([0-9]*).mp4$/.exec(req.url);
+
+        if (matchMovie) { // Tries to reach a movie
+
+            MediaService.getByID(matchMovie[1], function(err, movie) {
+
+                if (!err) {
+                    if (movie) {
+                        console.log('creando movie ' + movie.data.id);
+
+                        convert(movie.local.path, path.join(userDataPath, 'mirror', 'watch', 'movie-' + movie.data.id + '.mp4'));
+
+                        $timeout(function() {res.redirect(req.url)}, 5000);
+                    } else {
+                        res.json({ status: 1, action: 'watch-movie', data: 'not-found-movie' });
+                    }
+                } else {
+                    res.json({ status: 1, action: 'watch-movie', data: 'not-found' });
+                }
+            })
+        } else if (matchTvEpisode) { // Tries to reach a tv episode
+
+            MediaService.getByID(matchTvEpisode[1], function(err, tvshow) {
+
+                if (!err) {
+
+                    var episode = tvshow.local.seasons.find(function(season) { return season.number == matchTvEpisode[2]}).episodes.find(function(episode) { return episode.number == matchTvEpisode[3]})
+                    
+                    if (episode) {
+                        console.log('creando episode ' + matchTvEpisode[1]);
+
+                        convert(episode.path, path.join(userDataPath, 'mirror', 'watch', 'tvshow-' + tvshow.data.id + '-' + episode.season + '-' + episode.number + '.mp4'));
+
+                        $timeout(function() {res.redirect(req.url)}, 5000);
+                    } else {
+                        res.json({ status: 1, action: 'watch-tv', data: 'not-found-episode' });
+                    }
+                } else {
+                    res.json({ status: 1, action: 'watch-tv', data: 'not-found-tvshow' });
+                }
+            });
+        } else {
+            res.status(404);
+            res.json({ status: 0, action: 'not-found', data: 'Not Found' });
+        } 
     });
 
     app.listen(port, function() {
@@ -483,6 +553,7 @@ mediaLibrary.controller('validationController', function($scope, $timeout, Media
 
     var posterWidths = [92, 154, 185];
     var mkdirp = require('mkdirp');
+    mkdirp(path.join(userDataPath, 'mirror', 'watch'), function (err) { if (err) console.error(err) });
     posterWidths.forEach(function(posterWidth) { mkdirp(path.join(userDataPath, 'mirror', 't', 'p', 'w' + posterWidth), function (err) { if (err) console.error(err) }) });
 
     $timeout( function(){ if ($scope.auto) $scope.autoResolve(); else $scope.getPending() }, 500);
@@ -493,7 +564,7 @@ mediaLibrary.controller('validationController', function($scope, $timeout, Media
 
         if ($scope.pending) $scope.pending.working = true;
 
-        APIService.get().movieInfo({id: id, language: lang, append_to_response: "videos,images"}, function(err, movie){
+        APIService.get().movieInfo({id: id, language: lang, append_to_response: 'videos,images'}, function(err, movie){
             MediaService.upsertData($scope.pending._id, (movie ? movie : -1));
 
             cachePoster(movie);
@@ -507,7 +578,7 @@ mediaLibrary.controller('validationController', function($scope, $timeout, Media
 
         if ($scope.pending) $scope.pending.working = true;
 
-        APIService.get().tvInfo({id: id, language: lang, append_to_response: "videos,images"}, function(err, tvshow) {
+        APIService.get().tvInfo({id: id, language: lang, append_to_response: 'videos,images'}, function(err, tvshow) {
 
             cachePoster(tvshow);
             
@@ -538,7 +609,7 @@ mediaLibrary.controller('validationController', function($scope, $timeout, Media
     // Get Season
 
     $scope.getTvSeason = function(id, season_number, callback) {
-        APIService.get().tvSeasonInfo({id: id, season_number: season_number, language: lang, append_to_response: "videos,images"}, function(err, season){
+        APIService.get().tvSeasonInfo({id: id, season_number: season_number, language: lang, append_to_response: 'videos,images'}, function(err, season){
             MediaService.upsertData($scope.pending._id, (season ? season : -1));
             
             cachePoster(season);
@@ -549,7 +620,7 @@ mediaLibrary.controller('validationController', function($scope, $timeout, Media
     var cachePoster = function(media) {
         if (media.poster_path) {
             posterWidths.forEach(function(posterWidth) { 
-                https.get("https://image.tmdb.org/t/p/w" + posterWidth + media.poster_path, function(response) {
+                https.get('https://image.tmdb.org/t/p/w' + posterWidth + media.poster_path, function(response) {
                     if (response.statusCode === 200) response.pipe(fs.createWriteStream(path.join(userDataPath, 'mirror', 't', 'p', 'w' + posterWidth, media.poster_path))); 
                 })
             })
@@ -570,12 +641,12 @@ mediaLibrary.controller('validationController', function($scope, $timeout, Media
                         type: 'success',
                         caption: 'Resolviendo...',
                         content: '<div id="progress-resolve" class="progress ani" data-color="ribbed-amber" data-role="progress"></div>',
-                        icon: "<span class='mif-film'></span>",
+                        icon: '<span class="mif-film"></span>',
                         keepOpen: true
                     });
                 }
                 else {
-                    if (!autoResolveProgress) autoResolveProgress = $("#progress-resolve").data('progress');
+                    if (!autoResolveProgress) autoResolveProgress = $('#progress-resolve').data('progress');
                     if (autoResolveProgress) {
                         db.count({data:{$exists:true}}, function(err, countDone) {
                             db.count({}, function(err, countTotal) {

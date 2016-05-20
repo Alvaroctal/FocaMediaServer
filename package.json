@@ -31,6 +31,7 @@
     "https": "^1.0.0",
     "mkdirp": "^0.5.1",
     "moviedb": "https://github.com/impronunciable/moviedb/tarball/master",
-    "nedb": "^1.8.0"
+    "nedb": "^1.8.0",
+    "stream-transcoder": "0.0.5"
   }
 }
