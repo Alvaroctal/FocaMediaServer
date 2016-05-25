@@ -1,3 +1,4 @@
 node_modules
 data/*
 web/bower_components
+dist

@@ -290,6 +290,38 @@ mediaLibrary.controller('appController', function($scope, $timeout, DirectoriesS
             .stream().pipe(streamOut);
     }
 
+    app.get(/^\/watch\/movie-([0-9]*).mp4$/, function(req, res) {
+
+        MediaService.getByID(req.params[0], function(err, movie) {
+
+            if (!err) {
+                if (movie) {
+                    console.log('creando movie ' + movie.data.id);
+
+                    res.writeHead(206, { 'Content-Type': 'video/mp4' });
+
+                    var streamIn = fs.createReadStream(movie.local.path);
+
+                    new Transcoder(streamIn)
+                        .maxSize(1280, 720)
+                        .videoCodec('h264')
+                        .videoBitrate(800 * 1000)
+                        .fps(24)
+                        .audioCodec('aac')
+                        .sampleRate(44100)
+                        .channels(2)
+                        .audioBitrate(128 * 1000)
+                        .format('mp4')
+                        .on('finish', function() {
+                            console.log('a ver que podemos borrar');
+                        })
+                        .stream().pipe(res);
+
+                }
+            }
+        });
+    });
+
     app.use(function(req,res){
 
         var matchMovie = /^\/mirror\/watch\/movie-([0-9]*).mp4$/.exec(req.url);

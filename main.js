@@ -12,7 +12,7 @@ function createWindow() {
 
     mainWindow.loadURL('file://' + __dirname + '/web/index.html');
 
-    mainWindow.webContents.openDevTools();
+    //mainWindow.webContents.openDevTools();
 
     mainWindow.on('closed', function() {
         mainWindow = null;

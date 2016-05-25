@@ -5,7 +5,8 @@
   "description": "Your streaming media center",
   "main": "main.js",
   "scripts": {
-    "start": "electron main.js"
+    "start": "electron main.js",
+    "pack": "electron-packager . FocaMediaCenter --platform=win32,darwin,linux --arch=x64 --out=dist --overwrite"
   },
   "repository": {
     "type": "git",
